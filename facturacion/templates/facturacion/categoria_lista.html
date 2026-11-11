@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Categorías{% endblock %}
+{% block contenido %}
+<section class="panel">
+    <div class="encabezado-seccion">
+        <h1 class="titulo-pagina">Categorías</h1>
+        <a class="boton boton-principal" href="{% url 'facturacion:categoria_crear' %}">Nueva categoría</a>
+    </div>
+    <form method="get" class="busqueda">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar categoría">
+        <button type="submit">Buscar</button>
+    </form>
+    <div class="tabla-contenedor">
+        <table>
+            <thead><tr><th>Nombre</th><th>Productos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+                {% for categoria in categorias %}
+                    <tr>
+                        <td>{{ categoria.nombre }}</td>
+                        <td>{{ categoria.cantidad_productos }}</td>
+                        <td>{% if categoria.activo %}Activa{% else %}Inactiva{% endif %}</td>
+                        <td class="acciones-tabla">
+                            <a href="{% url 'facturacion:categoria_editar' categoria.pk %}">Editar</a>
+                            <a href="{% url 'facturacion:categoria_eliminar' categoria.pk %}">Eliminar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" class="vacio">No hay categorías registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

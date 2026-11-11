@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}{{ cliente }}{% endblock %}
+{% block contenido %}
+<section class="tarjeta">
+    <p class="etiqueta">Ficha del cliente</p>
+    <h1 class="titulo-pagina">{{ cliente }}</h1>
+    <dl class="detalle">
+        <dt>Cédula</dt><dd>{{ cliente.cedula }}</dd>
+        <dt>Correo</dt><dd>{{ cliente.email|default:"—" }}</dd>
+        <dt>Teléfono</dt><dd>{{ cliente.telefono|default:"—" }}</dd>
+        <dt>Dirección</dt><dd>{{ cliente.direccion|default:"—" }}</dd>
+        <dt>Registrado</dt><dd>{{ cliente.fecha_registro|date:"d/m/Y H:i" }}</dd>
+    </dl>
+    <div class="botonera">
+        <a class="boton boton-principal" href="{% url 'facturacion:cliente_editar' cliente.pk %}">Editar</a>
+        <a class="boton-secundario-accion" href="{% url 'facturacion:cliente_lista' %}">Volver a clientes</a>
+    </div>
+</section>
+{% endblock %}

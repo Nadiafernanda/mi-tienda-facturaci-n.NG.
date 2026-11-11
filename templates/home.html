@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<section class="hero">
+    <p class="etiqueta">Sistema de inventario</p>
+    <h1>Bienvenido a Mi Tienda</h1>
+    <p>Administra productos, marcas, categorías y clientes desde un solo lugar.</p>
+    {% if not user.is_authenticated %}
+        <div class="acciones">
+            <a class="boton boton-principal" href="{% url 'login' %}">Iniciar sesión</a>
+            <a class="boton boton-secundario" href="{% url 'registro' %}">Crear una cuenta</a>
+        </div>
+    {% else %}
+        <div class="acciones">
+            <a class="boton boton-principal" href="{% url 'facturacion:producto_lista' %}">Ver productos</a>
+            <a class="boton boton-secundario" href="{% url 'facturacion:cliente_lista' %}">Administrar clientes</a>
+        </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="encabezado-seccion">
+        <div>
+            <p class="etiqueta">Catálogo</p>
+            <h2>Productos destacados</h2>
+        </div>
+        {% if user.is_authenticated %}
+            <a href="{% url 'facturacion:producto_lista' %}">Ver catálogo completo</a>
+        {% endif %}
+    </div>
+    <div class="tarjetas">
+        {% for producto in productos %}
+            <article class="producto-card">
+                <p class="etiqueta">{{ producto.marca.nombre }}</p>
+                <h3>{{ producto.nombre }}</h3>
+                {% if producto.descripcion %}<p>{{ producto.descripcion|truncatewords:18 }}</p>{% endif %}
+                <p class="precio">${{ producto.precio }}</p>
+                <p class="texto-suave">Stock: {{ producto.stock }}</p>
+            </article>
+        {% empty %}
+            <p class="vacio">Aún no hay productos activos.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

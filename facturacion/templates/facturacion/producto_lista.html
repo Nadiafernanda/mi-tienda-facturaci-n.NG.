@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Productos{% endblock %}
+{% block contenido %}
+<section class="panel">
+    <div class="encabezado-seccion">
+        <h1 class="titulo-pagina">Productos</h1>
+        <a class="boton boton-principal" href="{% url 'facturacion:producto_crear' %}">Nuevo producto</a>
+    </div>
+    <form method="get" class="busqueda">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar por producto, marca o categoría">
+        <button type="submit">Buscar</button>
+    </form>
+    <div class="tabla-contenedor">
+        <table>
+            <thead><tr><th>Producto</th><th>Marca</th><th>Categorías</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+            <tbody>
+                {% for producto in productos %}
+                    <tr>
+                        <td><a href="{% url 'facturacion:producto_detalle' producto.pk %}">{{ producto.nombre }}</a></td>
+                        <td>{{ producto.marca.nombre }}</td>
+                        <td>{% for categoria in producto.categorias.all %}{{ categoria.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                        <td>${{ producto.precio }}</td>
+                        <td>{{ producto.stock }}</td>
+                        <td class="acciones-tabla">
+                            <a href="{% url 'facturacion:producto_editar' producto.pk %}">Editar</a>
+                            <a href="{% url 'facturacion:producto_eliminar' producto.pk %}">Eliminar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="vacio">No hay productos que coincidan con la búsqueda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "facturacion/paginacion.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}{{ producto.nombre }}{% endblock %}
+{% block contenido %}
+<section class="tarjeta">
+    <p class="etiqueta">Detalle del producto</p>
+    <h1 class="titulo-pagina">{{ producto.nombre }}</h1>
+    <dl class="detalle">
+        <dt>Marca</dt><dd>{{ producto.marca }}</dd>
+        <dt>Descripción</dt><dd>{{ producto.descripcion|default:"Sin descripción" }}</dd>
+        <dt>Precio</dt><dd>${{ producto.precio }}</dd>
+        <dt>Stock</dt><dd>{{ producto.stock }} unidad(es)</dd>
+        <dt>Categorías</dt>
+        <dd>{% for categoria in producto.categorias.all %}{{ categoria.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}Sin categoría{% endfor %}</dd>
+        <dt>Estado</dt><dd>{% if producto.activo %}Activo{% else %}Inactivo{% endif %}</dd>
+        <dt>Creado</dt><dd>{{ producto.fecha_creacion|date:"d/m/Y H:i" }}</dd>
+    </dl>
+    <div class="botonera">
+        <a class="boton boton-principal" href="{% url 'facturacion:producto_editar' producto.pk %}">Editar</a>
+        <a class="boton-secundario-accion" href="{% url 'facturacion:producto_lista' %}">Volver a productos</a>
+    </div>
+</section>
+{% endblock %}

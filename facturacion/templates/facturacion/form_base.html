@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<section class="tarjeta formulario">
+    <h1 class="titulo-pagina">{{ titulo }}</h1>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="botonera">
+            <button type="submit">{{ boton }}</button>
+            <a class="boton-secundario-accion" href="{{ volver_url }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
