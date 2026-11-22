@@ -4,14 +4,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block titulo %}Inicio{% endblock %} | Mi Tienda</title>
+    <title>{% block titulo %}Inicio{% endblock %} | RolandTech</title>
     <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
 </head>
 <body>
     <canvas id="estrellas" aria-hidden="true"></canvas>
     <header class="barra">
         <nav class="nav contenedor" aria-label="Navegación principal">
-            <a class="marca-sitio" href="{% url 'home' %}">Mi<span>Tienda</span></a>
+            <a class="marca-sitio" href="{% url 'home' %}">Roland<span>Tech</span></a>
             <div class="enlaces">
                 <a href="{% url 'home' %}">Inicio</a>
                 {% if user.is_authenticated %}
@@ -57,7 +57,7 @@
         {% block contenido %}{% endblock %}
     </main>
     <footer class="pie">
-        <div class="contenedor">Mi Tienda · Sistema de facturación y control de inventario</div>
+        <div class="contenedor">RolandTech · Sistema de facturación y control de inventario</div>
     </footer>
     <script src="{% static 'js/estrellas.js' %}"></script>
 </body>
