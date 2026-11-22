@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import RegistroForm
-from .models import Categoria, Cliente, Marca, Perfil, Producto
+from .models import Categoria, Cliente, DetalleVenta, Marca, Perfil, Producto, Proveedor, Venta
 
 
 class TiendaTests(TestCase):
@@ -108,6 +108,155 @@ class TiendaTests(TestCase):
         self.assertContains(response, cliente.cedula)
         self.assertEqual(response.context["pagina"].paginator.per_page, 5)
 
+    def test_proveedor_se_puede_crear_desde_el_formulario(self):
+        response = self.client.get(reverse("facturacion:proveedor_crear"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Nuevo proveedor")
+        self.assertContains(response, 'name="ruc"')
+        self.assertContains(response, 'type="submit"')
+
+        response = self.client.post(
+            reverse("facturacion:proveedor_crear"),
+            {
+                "nombre": "Distribuidora Andina",
+                "ruc": "1790000000001",
+                "email": "ventas@example.com",
+                "telefono": "0991234567",
+                "direccion": "Quito",
+                "activo": "on",
+            },
+        )
+        self.assertRedirects(response, reverse("facturacion:proveedor_lista"))
+        self.assertTrue(Proveedor.objects.filter(ruc="1790000000001").exists())
+
+    def test_crear_venta_calcula_iva_y_descuenta_inventario(self):
+        response = self.client.post(
+            reverse("facturacion:venta_crear"),
+            {
+                "cliente": Cliente.objects.create(
+                    cedula="1790000011",
+                    nombres="Ana",
+                    apellidos="Pérez",
+                ).pk,
+                "fecha": "2026-11-18T12:14",
+                "tipo_pago": Venta.TipoPago.CONTADO,
+                "detalles-TOTAL_FORMS": "1",
+                "detalles-INITIAL_FORMS": "0",
+                "detalles-MIN_NUM_FORMS": "0",
+                "detalles-MAX_NUM_FORMS": "1000",
+                "detalles-0-producto": self.producto.pk,
+                "detalles-0-cantidad": "2",
+            },
+        )
+        venta = Venta.objects.get()
+        self.assertRedirects(response, reverse("facturacion:venta_detalle", args=[venta.pk]))
+        self.assertEqual(venta.subtotal, 50)
+        self.assertEqual(venta.iva, 7.5)
+        self.assertEqual(venta.total, 57.5)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 2)
+
+    def test_editar_venta_recalcula_stock_y_eliminar_lo_devuelve(self):
+        cliente = Cliente.objects.create(
+            cedula="1790000012",
+            nombres="Luis",
+            apellidos="Mora",
+        )
+        venta = Venta.objects.create(
+            cliente=cliente,
+            registrado_por=self.user,
+            tipo_pago=Venta.TipoPago.CONTADO,
+        )
+        DetalleVenta.objects.create(
+            venta=venta,
+            producto=self.producto,
+            cantidad=2,
+            precio_unitario=self.producto.precio,
+        )
+        self.producto.stock = 2
+        self.producto.save(update_fields=["stock"])
+        venta.recalcular_totales()
+
+        response = self.client.post(
+            reverse("facturacion:venta_editar", args=[venta.pk]),
+            {
+                "cliente": cliente.pk,
+                "fecha": "2026-11-18T12:14",
+                "tipo_pago": Venta.TipoPago.TARJETA,
+                "detalles-TOTAL_FORMS": "2",
+                "detalles-INITIAL_FORMS": "1",
+                "detalles-MIN_NUM_FORMS": "0",
+                "detalles-MAX_NUM_FORMS": "1000",
+                "detalles-0-id": venta.detalles.get().pk,
+                "detalles-0-producto": self.producto.pk,
+                "detalles-0-cantidad": "3",
+                "detalles-1-producto": "",
+                "detalles-1-cantidad": "",
+            },
+        )
+        self.assertRedirects(response, reverse("facturacion:venta_detalle", args=[venta.pk]))
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 1)
+        venta.refresh_from_db()
+        self.assertEqual(venta.tipo_pago, Venta.TipoPago.TARJETA)
+        self.assertEqual(venta.total, 86.25)
+
+        response = self.client.post(reverse("facturacion:venta_eliminar", args=[venta.pk]))
+        self.assertRedirects(response, reverse("facturacion:venta_lista"))
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 4)
+        self.assertFalse(Venta.objects.filter(pk=venta.pk).exists())
+
+    def test_venta_no_permite_vender_mas_stock_del_disponible(self):
+        cliente = Cliente.objects.create(
+            cedula="1790000013",
+            nombres="Eva",
+            apellidos="Luna",
+        )
+        response = self.client.post(
+            reverse("facturacion:venta_crear"),
+            {
+                "cliente": cliente.pk,
+                "fecha": "2026-11-18T12:14",
+                "tipo_pago": Venta.TipoPago.CONTADO,
+                "detalles-TOTAL_FORMS": "1",
+                "detalles-INITIAL_FORMS": "0",
+                "detalles-MIN_NUM_FORMS": "0",
+                "detalles-MAX_NUM_FORMS": "1000",
+                "detalles-0-producto": self.producto.pk,
+                "detalles-0-cantidad": "5",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Stock insuficiente")
+        self.assertFalse(Venta.objects.exists())
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 4)
+
+    def test_paginas_de_ventas_y_factura_cargan(self):
+        cliente = Cliente.objects.create(
+            cedula="1790000014",
+            nombres="Nora",
+            apellidos="Díaz",
+        )
+        venta = Venta.objects.create(cliente=cliente, registrado_por=self.user)
+        DetalleVenta.objects.create(
+            venta=venta,
+            producto=self.producto,
+            cantidad=1,
+            precio_unitario=self.producto.precio,
+        )
+        urls = [
+            reverse("facturacion:venta_lista"),
+            reverse("facturacion:venta_crear"),
+            reverse("facturacion:venta_detalle", args=[venta.pk]),
+            reverse("facturacion:venta_editar", args=[venta.pk]),
+            reverse("facturacion:venta_eliminar", args=[venta.pk]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
     def test_registro_inicia_sesion_y_crea_perfil(self):
         self.client.logout()
         response = self.client.post(
@@ -123,22 +272,24 @@ class TiendaTests(TestCase):
         self.assertTrue(User.objects.filter(username="usuario_nuevo").exists())
         self.assertTrue(Perfil.objects.filter(usuario__username="usuario_nuevo").exists())
 
-    def test_registro_rechaza_contrasenas_comunes_o_no_numericas(self):
+    def test_registro_acepta_usuario_y_contrasena_sin_restricciones_de_formato(self):
+        self.client.logout()
         datos = {
-            "username": "otro_usuario",
+            "username": "usuario libre! ñ",
             "email": "otro@example.com",
-            "password1": "4827abc9",
-            "password2": "4827abc9",
+            "password1": "abc",
+            "password2": "abc",
         }
-        form = RegistroForm(data=datos)
-        self.assertFalse(form.is_valid())
-        self.assertIn("únicamente números", str(form.errors))
-
-        datos["password1"] = "12345678"
-        datos["password2"] = "12345678"
-        form = RegistroForm(data=datos)
-        self.assertFalse(form.is_valid())
-        self.assertIn("demasiado común", str(form.errors).lower())
+        response = self.client.post(reverse("registro"), datos)
+        self.assertRedirects(response, reverse("home"))
+        user = User.objects.get(username=datos["username"])
+        self.assertTrue(user.check_password(datos["password1"]))
+        self.client.logout()
+        response = self.client.post(
+            reverse("login"),
+            {"username": datos["username"], "password": datos["password1"]},
+        )
+        self.assertRedirects(response, reverse("home"))
 
     def test_perfil_actualiza_solo_usuario_autenticado(self):
         response = self.client.post(

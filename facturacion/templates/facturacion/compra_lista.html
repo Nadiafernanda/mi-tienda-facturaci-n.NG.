@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Compras{% endblock %}
+{% block contenido %}
+<section class="panel">
+    <div class="encabezado-seccion">
+        <h1 class="titulo-pagina">Compras</h1>
+        <a class="boton boton-principal" href="{% url 'facturacion:compra_crear' %}">Nueva compra</a>
+    </div>
+    <form method="get" class="busqueda">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar por número o proveedor">
+        <button type="submit">Buscar</button>
+    </form>
+    <div class="tabla-contenedor">
+        <table>
+            <thead><tr><th>Número</th><th>Proveedor</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
+            <tbody>
+                {% for compra in compras %}
+                    <tr>
+                        <td><a href="{% url 'facturacion:compra_detalle' compra.pk %}">{{ compra.numero }}</a></td>
+                        <td>{{ compra.proveedor.nombre }}</td>
+                        <td>{{ compra.fecha|date:"d/m/Y" }}</td>
+                        <td>${{ compra.total }}</td>
+                        <td>{{ compra.get_estado_display }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="vacio">No hay compras registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "facturacion/paginacion.html" %}
+</section>
+{% endblock %}

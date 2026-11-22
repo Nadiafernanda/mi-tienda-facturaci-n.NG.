@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<section class="panel">
+    <div class="encabezado-seccion">
+        <h1 class="titulo-pagina">{{ compra.numero }}</h1>
+        <a class="boton boton-principal" href="{% url 'facturacion:compra_lista' %}">Volver</a>
+    </div>
+    <p><strong>Proveedor:</strong> {{ compra.proveedor.nombre }}</p>
+    <p><strong>Fecha:</strong> {{ compra.fecha|date:"d/m/Y" }}</p>
+    <p><strong>Estado:</strong> {{ compra.get_estado_display }}</p>
+    {% if compra.observaciones %}<p><strong>Observaciones:</strong> {{ compra.observaciones }}</p>{% endif %}
+    <div class="tabla-contenedor">
+        <table>
+            <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio unitario</th><th>Subtotal</th></tr></thead>
+            <tbody>
+                {% for detalle in compra.detalles.all %}
+                    <tr>
+                        <td>{{ detalle.producto.nombre }}</td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>${{ detalle.precio_unitario }}</td>
+                        <td>${{ detalle.subtotal }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p><strong>Total:</strong> ${{ compra.total }}</p>
+</section>
+{% endblock %}
