@@ -4,6 +4,11 @@
 <section class="tarjeta">
     <p class="etiqueta">Detalle del producto</p>
     <h1 class="titulo-pagina">{{ producto.nombre }}</h1>
+    {% if producto.imagen %}
+    <div style="margin-bottom: 20px; text-align: center;">
+        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="max-height: 220px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+    </div>
+    {% endif %}
     <dl class="detalle">
         <dt>Marca</dt><dd>{{ producto.marca }}</dd>
         <dt>Descripción</dt><dd>{{ producto.descripcion|default:"Sin descripción" }}</dd>

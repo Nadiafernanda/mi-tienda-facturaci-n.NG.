@@ -12,10 +12,11 @@
     </form>
     <div class="tabla-contenedor">
         <table>
-            <thead><tr><th>Nombre</th><th>RUC</th><th>Correo</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Logo</th><th>Nombre</th><th>RUC</th><th>Correo</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
                 {% for proveedor in proveedores %}
                     <tr>
+                        <td>{% if proveedor.logo %}<img src="{{ proveedor.logo.url }}" alt="{{ proveedor.nombre }}" style="height: 36px; width: 36px; object-fit: contain; border-radius: 4px; background: #fff; padding: 2px;">{% else %}—{% endif %}</td>
                         <td>{{ proveedor.nombre }}</td>
                         <td>{{ proveedor.ruc }}</td>
                         <td>{{ proveedor.email|default:"—" }}</td>
@@ -26,7 +27,7 @@
                         </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="5" class="vacio">No hay proveedores registrados.</td></tr>
+                    <tr><td colspan="6" class="vacio">No hay proveedores registrados.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

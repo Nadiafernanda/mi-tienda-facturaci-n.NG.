@@ -1,23 +1,102 @@
 {% extends "base.html" %}
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block contenido %}
-<section class="tarjeta formulario">
+<section class="tarjeta formulario venta-formulario">
     <h1 class="titulo-pagina">{{ titulo }}</h1>
     <form method="post" novalidate>
         {% csrf_token %}
-        {{ form.as_p }}
-        <h2>Productos</h2>
+        {% if form.non_field_errors %}<div class="errorlist">{{ form.non_field_errors }}</div>{% endif %}
+        
+        <div class="venta-cabecera">
+            <div>
+                {{ form.numero.label_tag }}
+                {{ form.numero }}
+                {{ form.numero.errors }}
+            </div>
+            <div>
+                {{ form.proveedor.label_tag }}
+                {{ form.proveedor }}
+                {{ form.proveedor.errors }}
+            </div>
+            <div>
+                {{ form.fecha.label_tag }}
+                {{ form.fecha }}
+                {{ form.fecha.errors }}
+            </div>
+            <div>
+                {{ form.estado.label_tag }}
+                {{ form.estado }}
+                {{ form.estado.errors }}
+            </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            {{ form.observaciones.label_tag }}
+            {{ form.observaciones }}
+            {{ form.observaciones.errors }}
+        </div>
+
+        <div class="encabezado-seccion venta-productos-titulo" style="margin-top: 25px;">
+            <h2>Detalle de Productos Comprados</h2>
+        </div>
+        
         {{ formset.management_form }}
-        {% if formset.non_form_errors %}
-            <div class="error">{{ formset.non_form_errors }}</div>
-        {% endif %}
-        {% for detalle in formset %}
-            <div class="detalle-compra">{{ detalle.as_p }}</div>
-        {% endfor %}
+        {% if formset.non_form_errors %}<div class="errorlist">{{ formset.non_form_errors }}</div>{% endif %}
+        
+        <div class="tabla-contenedor">
+            <table class="tabla-ventas tabla-detalles-venta" id="tabla-detalles-compra">
+                <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio Unitario ($)</th><th>Quitar</th></tr></thead>
+                <tbody>
+                    {% for detalle in formset %}
+                        <tr class="fila-detalle-compra">
+                            <td>
+                                {{ detalle.id }}
+                                {{ detalle.producto }}
+                                {{ detalle.producto.errors }}
+                                {% if detalle.non_field_errors %}{{ detalle.non_field_errors }}{% endif %}
+                            </td>
+                            <td>{{ detalle.cantidad }}{{ detalle.cantidad.errors }}</td>
+                            <td>{{ detalle.precio_unitario }}{{ detalle.precio_unitario.errors }}</td>
+                            <td class="columna-quitar">{{ detalle.DELETE }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <template id="detalle-compra-vacio">
+            <tr class="fila-detalle-compra">
+                <td>{{ formset.empty_form.id }}{{ formset.empty_form.producto }}</td>
+                <td>{{ formset.empty_form.cantidad }}</td>
+                <td>{{ formset.empty_form.precio_unitario }}</td>
+                <td class="columna-quitar">{{ formset.empty_form.DELETE }}</td>
+            </tr>
+        </template>
+        
+        <button class="boton boton-secundario boton-agregar-detalle" type="button" id="agregar-detalle-compra">+ Agregar producto</button>
+        <p class="texto-suave ayuda-venta">El inventario se incrementará automáticamente al guardar la compra.</p>
+
         <div class="botonera">
             <button type="submit">{{ boton }}</button>
             <a class="boton-secundario-accion" href="{{ volver_url }}">Cancelar</a>
         </div>
     </form>
 </section>
+
+<script>
+(() => {
+    const boton = document.getElementById("agregar-detalle-compra");
+    const tabla = document.querySelector("#tabla-detalles-compra tbody");
+    const plantilla = document.getElementById("detalle-compra-vacio");
+    const total = document.getElementById("id_{{ formset.prefix }}-TOTAL_FORMS");
+    if (boton && tabla && plantilla && total) {
+        boton.addEventListener("click", () => {
+            const indice = Number(total.value);
+            const fila = plantilla.innerHTML.replace(/__prefix__/g, indice);
+            tabla.insertAdjacentHTML("beforeend", fila);
+            total.value = indice + 1;
+        });
+    }
+})();
+</script>
 {% endblock %}

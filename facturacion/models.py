@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.db.models import F
 from django.utils import timezone
 
 
@@ -38,6 +39,7 @@ class Producto(models.Model):
     descripcion = models.TextField("Descripción", blank=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
+    imagen = models.ImageField("Imagen", upload_to="productos/", blank=True, null=True)
     marca = models.ForeignKey(
         Marca,
         on_delete=models.PROTECT,
@@ -128,6 +130,16 @@ class Venta(models.Model):
         self.total = self.subtotal + self.iva
         self.save(update_fields=["subtotal", "iva", "total", "actualizado_en"])
 
+    def descontar_stock(self):
+        """Disminuye del stock las cantidades vendidas."""
+        for detalle in self.detalles.all():
+            Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") - detalle.cantidad)
+
+    def devolver_stock(self):
+        """Regresa las unidades al inventario (al editar o eliminar la venta)."""
+        for detalle in self.detalles.all():
+            Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") + detalle.cantidad)
+
 
 class DetalleVenta(models.Model):
     venta = models.ForeignKey(
@@ -163,6 +175,7 @@ class Proveedor(models.Model):
     email = models.EmailField("Correo", blank=True)
     telefono = models.CharField("Teléfono", max_length=15, blank=True)
     direccion = models.CharField("Dirección", max_length=200, blank=True)
+    logo = models.ImageField("Logo", upload_to="proveedores/", blank=True, null=True)
     activo = models.BooleanField(default=True)
 
     class Meta:
@@ -217,6 +230,16 @@ class Compra(models.Model):
         )
         self.total = total
         self.save(update_fields=["total"])
+
+    def ingresar_stock(self):
+        """Incrementa las unidades en inventario por la compra realizada."""
+        for detalle in self.detalles.all():
+            Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") + detalle.cantidad)
+
+    def revertir_stock(self):
+        """Resta del inventario las unidades compradas (al anular, editar o eliminar la compra)."""
+        for detalle in self.detalles.all():
+            Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") - detalle.cantidad)
 
 
 class DetalleCompra(models.Model):

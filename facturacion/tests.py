@@ -1,9 +1,10 @@
+from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .forms import RegistroForm
-from .models import Categoria, Cliente, DetalleVenta, Marca, Perfil, Producto, Proveedor, Venta
+from .forms import ProveedorForm, RegistroForm
+from .models import Categoria, Cliente, Compra, DetalleCompra, DetalleVenta, Marca, Perfil, Producto, Proveedor, Venta
 
 
 class TiendaTests(TestCase):
@@ -342,3 +343,41 @@ class TiendaTests(TestCase):
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_compra_con_formset_incrementa_stock_y_eliminar_lo_revierte(self):
+        proveedor = Proveedor.objects.create(nombre="Prov Test", ruc="1790011122001")
+        stock_inicial = self.producto.stock
+        response = self.client.post(
+            reverse("facturacion:compra_crear"),
+            {
+                "numero": "COMP-TEST-001",
+                "proveedor": proveedor.pk,
+                "fecha": "2026-11-21",
+                "estado": "REGISTRADA",
+                "detalles-TOTAL_FORMS": "1",
+                "detalles-INITIAL_FORMS": "0",
+                "detalles-MIN_NUM_FORMS": "0",
+                "detalles-MAX_NUM_FORMS": "1000",
+                "detalles-0-producto": self.producto.pk,
+                "detalles-0-cantidad": "10",
+                "detalles-0-precio_unitario": "15.00",
+            },
+        )
+        compra = Compra.objects.get(numero="COMP-TEST-001")
+        self.assertRedirects(response, reverse("facturacion:compra_detalle", args=[compra.pk]))
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, stock_inicial + 10)
+        self.assertEqual(compra.total, Decimal("150.00"))
+
+        response_delete = self.client.post(reverse("facturacion:compra_eliminar", args=[compra.pk]))
+        self.assertRedirects(response_delete, reverse("facturacion:compra_lista"))
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, stock_inicial)
+
+    def test_proveedor_valida_ruc_13_digitos_y_terminacion_001(self):
+        form_invalido = ProveedorForm(data={"nombre": "Invalido", "ruc": "1790011122002"})
+        self.assertFalse(form_invalido.is_valid())
+        self.assertIn("ruc", form_invalido.errors)
+
+        form_valido = ProveedorForm(data={"nombre": "Valido", "ruc": "1790011122001"})
+        self.assertTrue(form_valido.is_valid())
